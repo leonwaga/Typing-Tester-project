@@ -1,6 +1,28 @@
+# Import necessary libraries and modules
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from models import User, TypingTest, Score, session
 import time
+import hashlib
+# Create an engine and a session
+engine = create_engine("sqlite:///typing_test.db")
+session = sessionmaker(bind=engine)
+session = session()
 
+def get_or_create_user():
+    username = input("Enter your username: ")
+    email = input("Enter your email address: ")
+    password = input("Enter your password: ")
+# Query the database to see if a user with the same username exists, if not create a new user and add it to the database
+    user = session.query(User).filter_by(username=username).first()
+
+    if user is None:
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        user = User(username=username, email=email, password=hashed_password)
+        session.add(user)
+        session.commit()
+
+    return user
 
 def create_typing_test(user_id, duration_seconds):
     typing_test = TypingTest(user_id=user_id, duration_seconds=duration_seconds)
@@ -23,11 +45,11 @@ def calculate_typing_speed(input_text, elapsed_time):
     return words_per_minute
 
 def test():
-    user_id = User.id
+    user = get_or_create_user()
     
-    sample_text = "Kenya, in East Africa, is famous for its stunning landscapes, wildlife, and diverse cultures. It's well known for places like Maasai Mara, offering a blend of natural beauty and vibrant heritage."
+    sample_text = "The quick brown fox jumps over the lazy dog. This sentence contains all the letters of the alphabet. It's a beautiful day outside, and the birds are singing. The sun is shining, and the sky is clear. Typing accurately and quickly is a valuable skill. Practice makes perfect!"
     print("Karibu to the Jiamini Typing Tester!")
-    print("Your sample text is:")
+    print("Below, you can see the text you'll be typing. Good luck!")
     print(sample_text)
     input("Press enter to begin...")
 
@@ -41,8 +63,8 @@ def test():
 
     print(f"Congrats!! Your typing speed is: {words_per_minute:.2f} words per minute")
 
-    typing_test = create_typing_test(user_id, int(elapsed_time))
-    save_score(typing_test, user_id, words_per_minute)
+    typing_test = create_typing_test(user.id, int(elapsed_time))
+    save_score(typing_test,user.id, words_per_minute)
 
 if __name__ == '__main__':
     test()
